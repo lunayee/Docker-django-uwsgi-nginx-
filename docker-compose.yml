@@ -1,0 +1,64 @@
+version: "3"
+services:
+  db:
+    image: mysql:5.7
+    restart: always
+    volumes:
+      - "./compose/mysql/backup:/var/lib/mysql"
+      - ./compose/mysql/conf/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./compose/mysql/init:/docker-entrypoint-initdb.d
+    networks:
+      ipconfig:
+        ipv4_address: 172.20.0.3
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_DATABASE=config
+      - MYSQL_ROOT_PASSWORD=123456789
+      
+    
+  web:
+    build: ./myproject
+    restart: always
+    # volumes:
+      #- ./myproject:/var/www/html/myproject
+      #- ./myproject/static:/var/www/html/myproject/static
+      # - ./compose/uwsgi:/tmp
+    networks:
+      ipconfig:
+        ipv4_address: 172.20.0.2
+    expose:
+      - "8000"
+
+    depends_on:
+      - db
+    tty: true
+    stdin_open: true
+    
+
+  nginx:
+    build: ./compose/nginx
+    restart : always
+    networks:
+      ipconfig:
+        ipv4_address: 172.20.0.4
+    ports:
+      - "80:80"
+    volumes:
+      # - ./compose/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf 
+      # - ./compose/nginx/ssl:/usr/share/nginx/ssl 
+      # - ./compose/nginx/log:/var/log/nginx 
+      - ./myproject/apps/static:/usr/share/nginx/html/static 
+    depends_on:
+      - web
+    
+
+networks:
+  ipconfig:
+    driver: bridge
+    ipam:
+      config:
+       - subnet: 172.20.0.0/16
+         #gateway: 172.20.0.1
+  
+
